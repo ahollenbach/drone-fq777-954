@@ -1,5 +1,6 @@
 import socket
 import time
+from opencvtest import decode
 
 DATA = [
             bytearray([0x49, 0x54, 0x64, 0x00, 0x00, 0x00, 0x52, 0x00, 0x00,
@@ -9,8 +10,8 @@ DATA = [
                 0xE0, 0x30, 0xB7, 0xC2, 0xE5, 0xB7, 0xD6, 0x5D, 0xA8, 0x65,
                 0x9E, 0xB2, 0xE2, 0xD5, 0xE0, 0xC2, 0xCB, 0x6C, 0x59, 0xCD,
                 0xCB, 0x66, 0x1E, 0x7E, 0x1E, 0xB0, 0xCE, 0x8E, 0xE8, 0xDF,
-                0x32, 0x45, 0x6F, 0xA8, 0x42, 0xB7, 0x33, 0x0F, 0xB7, 0xC9, 
-                0x57, 0x82, 0xFC, 0x3D, 0x67, 0xE7, 0xC3, 0xA6, 0x67, 0x28, 
+                0x32, 0x45, 0x6F, 0xA8, 0x42, 0xB7, 0x33, 0x0F, 0xB7, 0xC9,
+                0x57, 0x82, 0xFC, 0x3D, 0x67, 0xE7, 0xC3, 0xA6, 0x67, 0x28,
                 0xDA, 0xD8, 0xB5, 0x98, 0x48, 0xC7, 0x67, 0x0C, 0x94, 0xB2,
                 0x9B, 0x54, 0xD2, 0x37, 0x9E, 0x2E, 0x7A]),
 
@@ -20,10 +21,10 @@ DATA = [
                 0x30, 0xA3, 0xC1, 0x5E, 0x40, 0xDE, 0x30, 0xF6, 0xD6, 0x95,
                 0xE0, 0x30, 0xB7, 0xC2, 0xE5, 0xB7, 0xD6, 0x5D, 0xA8, 0x65,
                 0x9E, 0xB2, 0xE2, 0xD5, 0xE0, 0xC2, 0xCB, 0x6C, 0x59, 0xCD,
-                0xCB, 0x66, 0x1E, 0x7E, 0x1E, 0xB0, 0xCE, 0x8E, 0xE8, 0xDF, 
-                0x32, 0x45, 0x6F, 0xA8, 0x42, 0xB7, 0x33, 0x0F, 0xB7, 0xC9, 
-                0x57, 0x82, 0xFC, 0x3D, 0x67, 0xE7, 0xC3, 0xA6, 0x67, 0x28, 
-                0xDA, 0xD8, 0xB5, 0x98, 0x48, 0xC7, 0x67, 0x0C, 0x94, 0xB2, 
+                0xCB, 0x66, 0x1E, 0x7E, 0x1E, 0xB0, 0xCE, 0x8E, 0xE8, 0xDF,
+                0x32, 0x45, 0x6F, 0xA8, 0x42, 0xB7, 0x33, 0x0F, 0xB7, 0xC9,
+                0x57, 0x82, 0xFC, 0x3D, 0x67, 0xE7, 0xC3, 0xA6, 0x67, 0x28,
+                0xDA, 0xD8, 0xB5, 0x98, 0x48, 0xC7, 0x67, 0x0C, 0x94, 0xB2,
                 0x9B, 0x54, 0xD2, 0x37, 0x9E, 0x2E, 0x7A])
         ]
 
@@ -44,30 +45,78 @@ class DroneVideo(object):
         self.fh = open("fpv.mp4", 'wb')
         self.ip = '172.16.10.1'
         self.port = 8888
+        self.open_sockets()
+
+    def open_sockets(self):
+        connected = False
+        while not connected:
+            try:
+                print "trying to open sockets..."
+                self.video = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.video.connect((self.ip, self.port))
+                self.video.settimeout(0.1)
+                print "video started"
+                self.video.send(DATA[0])
+                print("video link", len(self.video.recv(8192)))
+                self.video.send(DATA[1])
+                print("video link", len(self.video.recv(8192)))
+                connected = True
+            except Exception, e:
+                print e
+
+        self.stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.stream.connect((self.ip, self.port))
+        self.stream.send(DATA1)
+        self.video.setblocking(False)
+
+
+        self.stream.settimeout(0.1)
+
+        self.count = 0
+
+    def reconnect(self):
+        self.stream.close()
+        self.video.close()
+        #self.video.send(DATA[0])
+        #self.video.send(DATA[1])
+        self.open_sockets()
 
     def fetch_video(self):
-        count = 0
-        video = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        video.connect((self.ip, self.port))
-
-        video.send(DATA[0])
-        print("video link", len(video.recv(8192)))
-        video.send(DATA[1])
-        print("video link", len(video.recv(8192)))
-
-        stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        stream.connect((self.ip, self.port))
-        stream.send(DATA1)
-
-        stream.settimeout(1)
-
-        while True:
-            count +=1
-            try:
-                data = stream.recv(8192)
-            except socket.timeout:
-                stream.close()
-                video.close()
-                return count
-            
+        try:
+            data = self.stream.recv(8192)
             self.fh.write(data)
+            return data
+        except socket.timeout:
+            self.reconnect()
+            return None
+
+    def close(self):
+        self.video.close()
+        self.stream.close()
+
+
+from io import BytesIO
+import av
+
+
+if __name__ == "__main__":
+    start = time.time()
+    d  = DroneVideo()
+    videobuffer = BytesIO()
+
+    started = False
+    for i in range(1000):
+        print i
+        newdata = d.fetch_video()
+        if newdata is not None:
+            videobuffer.write(newdata)
+            #print newdata
+
+        if i>100:
+            print "a"
+            container = av.open(videobuffer)
+            print container
+            video = next(s for s in container.streams if s.type == b'video')
+            exit()
+
+    print("code run for ", time.time()-start)

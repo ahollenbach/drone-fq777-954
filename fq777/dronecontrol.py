@@ -59,12 +59,17 @@ class DroneControl(object):
         self.udp_socket.send(START_DRONE_DATA)
 
 
+    def reconnect(self):
+        self.disconnect()
+        self.connect()
+
+
 if __name__ == "__main__":
     drone = DroneControl()
     drone.connect()
 
-    for i in range(100):
-        drone.cmd(t=50)
+    for i in range(50):
+        drone.cmd(t=20)
 
     drone.stop()
     drone.disconnect()
