@@ -51,18 +51,18 @@ class DroneVideo(object):
         connected = False
         while not connected:
             try:
-                print "trying to open sockets..."
+                print("trying to open sockets...")
                 self.video = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.video.connect((self.ip, self.port))
                 self.video.settimeout(0.1)
-                print "video started"
+                print("video started")
                 self.video.send(DATA[0])
                 print("video link", len(self.video.recv(8192)))
                 self.video.send(DATA[1])
                 print("video link", len(self.video.recv(8192)))
                 connected = True
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
 
         self.stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.stream.connect((self.ip, self.port))
@@ -95,28 +95,25 @@ class DroneVideo(object):
         self.stream.close()
 
 
-from io import BytesIO
-import av
-
+import os
 
 if __name__ == "__main__":
     start = time.time()
     d  = DroneVideo()
-    videobuffer = BytesIO()
+    #videobuffer = StringIO.StringIO()
 
     started = False
     for i in range(1000):
-        print i
         newdata = d.fetch_video()
         if newdata is not None:
-            videobuffer.write(newdata)
-            #print newdata
+            with open("last.mp4", 'ab') as f:
+                f.write(newdata)
 
-        if i>100:
-            print "a"
-            container = av.open(videobuffer)
-            print container
-            video = next(s for s in container.streams if s.type == b'video')
-            exit()
+        frames = decode("last.mp4")
+        if frames > 10:
+            videobuffer = ""
+            os.remove('last.mp4')
+
+
 
     print("code run for ", time.time()-start)

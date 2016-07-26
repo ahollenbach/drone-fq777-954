@@ -1,6 +1,8 @@
 import av
 import cv2
+import time
 
+lastFrame = -1
 
 def decode(data):
     try:
@@ -9,15 +11,17 @@ def decode(data):
         return 0
     video = next(s for s in container.streams if s.type == b'video')
     frames = 0
+
     for packet in container.demux(video):
         try:
             for frame in packet.decode():
-                frames +=1
+                time.sleep(0.01)
                 cv2.imshow('frame',frame.to_nd_array(format='bgr24'))
+                frames+=1
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-        except av.AVError, e:
-            print e
+        except av.AVError as e:
+            print(e)
     return frames
 
 if __name__ == "__main__":
