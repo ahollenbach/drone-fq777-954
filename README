@@ -4,6 +4,12 @@ This code is an attempt to control and capture video from the cheap micro-drone 
 currently it's able to send commands and capture video data, however the video data stalls after about 35 seconds.
 
 
+##Requirements
+
+Opencv + Python bindings
+PyAv
+
+
 ##Usage
 
     python main.py
@@ -11,3 +17,5 @@ currently it's able to send commands and capture video data, however the video d
 
 ##Video playback
     mplayer -fps 13 fpv.mp4
+
+
