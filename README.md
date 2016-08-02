@@ -17,5 +17,3 @@ PyAv
 
 ##Video playback
     mplayer -fps 13 fpv.mp4
-
-
